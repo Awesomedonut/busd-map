@@ -44,6 +44,7 @@ export function MapView({ cfg, initial, children }: Props) {
         noWrap
         bounds={bounds}
         keepBuffer={4}
+        detectRetina
         updateWhenZooming={false}
         updateInterval={100}
       />

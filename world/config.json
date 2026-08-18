@@ -1,0 +1,12 @@
+{
+  "name": "Placeholder Realm",
+  "subtitle": "A world shaped like the Middle Kingdom",
+  "unit": { "name": "li", "plural": "li", "kmPerUnit": 0.5 },
+  "travelModes": [
+    { "id": "foot", "label": "On foot", "kmPerDay": 30 },
+    { "id": "horse", "label": "Horseback", "kmPerDay": 60 },
+    { "id": "caravan", "label": "Caravan", "kmPerDay": 25 },
+    { "id": "ship", "label": "Ship", "kmPerDay": 150 },
+    { "id": "courier", "label": "Relay courier", "kmPerDay": 200 }
+  ]
+}

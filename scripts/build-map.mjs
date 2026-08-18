@@ -1,165 +1,40 @@
-// Generates the placeholder world map (based on real China geodata) as a
-// high-res PNG plus the JSON data the viewer consumes.
+// Renders the world map as a high-res PNG plus the JSON the viewer consumes.
+// Source of truth is world/*.json (locations, roads, config) + the terrain
+// geodata in scripts/data. Re-run whenever the world changes:
 //
-//   node scripts/build-map.mjs
+//   npm run build:map        (this + tiles)
 //
 // Outputs:
-//   public/map/map.png        full-res source image
-//   public/data/map.json      size, scale, zoom config
+//   public/map/map.png         full-res base image (then sliced by make-tiles)
+//   public/data/map.json       size, scale, zoom, units, travel modes
 //   public/data/locations.json cities (pixel coords)
-//   public/data/roads.json    road / sea-lane graph
-//   public/data/regions.json  province labels + polygons (pixel coords)
+//   public/data/roads.json     road / sea-lane graph with lengths
+//   public/data/regions.json   region labels
 
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import sharp from "sharp";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.resolve(__dirname, "..");
-const DATA = path.join(__dirname, "data");
-const read = (f) => JSON.parse(fs.readFileSync(path.join(DATA, f), "utf8"));
-
-// ---------------------------------------------------------------- projection
-const OUT_W = 8192;
-const BBOX = { minLon: 72.5, maxLon: 136.5, minLat: 16.5, maxLat: 54.5 };
-const MID_LAT = 36;
-const K = Math.cos((MID_LAT * Math.PI) / 180);
-const PX_PER_DEG = OUT_W / ((BBOX.maxLon - BBOX.minLon) * K);
-const OUT_H = Math.round((BBOX.maxLat - BBOX.minLat) * PX_PER_DEG);
-const KM_PER_PX = 111.32 / PX_PER_DEG;
-const proj = ([lon, lat]) => [
-  (lon - BBOX.minLon) * K * PX_PER_DEG,
-  (BBOX.maxLat - lat) * PX_PER_DEG,
-];
-const fmt = (n) => Math.round(n * 10) / 10;
+import {
+  ROOT, read, readWorld, OUT_W, OUT_H, KM_PER_PX, fmt, proj, outline, provinces,
+  PROVINCE_EN, NO_REGION_LABEL, pathFromPolys, pathFromLines, bboxOf,
+} from "./lib/world-geo.mjs";
 
 console.log(`canvas ${OUT_W}x${OUT_H}, ${KM_PER_PX.toFixed(3)} km/px`);
 
-// ---------------------------------------------------------------- data
-const outline = read("outline.json").features[0];
-const provinces = read("provinces.json").features.filter((f) => f.properties.name);
 const rivers = read("rivers.json").features;
 const lakes = read("lakes.json").features;
-const places = read("places.json").features;
 
-const PROVINCE_EN = {
-  北京市: "Beijing", 天津市: "Tianjin", 河北省: "Hebei", 山西省: "Shanxi",
-  内蒙古自治区: "Inner Mongolia", 辽宁省: "Liaoning", 吉林省: "Jilin",
-  黑龙江省: "Heilongjiang", 上海市: "Shanghai", 江苏省: "Jiangsu",
-  浙江省: "Zhejiang", 安徽省: "Anhui", 福建省: "Fujian", 江西省: "Jiangxi",
-  山东省: "Shandong", 河南省: "Henan", 湖北省: "Hubei", 湖南省: "Hunan",
-  广东省: "Guangdong", 广西壮族自治区: "Guangxi", 海南省: "Hainan",
-  重庆市: "Chongqing", 四川省: "Sichuan", 贵州省: "Guizhou", 云南省: "Yunnan",
-  西藏自治区: "Tibet", 陕西省: "Shaanxi", 甘肃省: "Gansu", 青海省: "Qinghai",
-  宁夏回族自治区: "Ningxia", 新疆维吾尔自治区: "Xinjiang", 台湾省: "Taiwan",
-  香港特别行政区: "Hong Kong", 澳门特别行政区: "Macau",
-};
-// municipalities / SARs are labelled as cities, not regions
-const NO_REGION_LABEL = new Set(["Beijing", "Tianjin", "Shanghai", "Hong Kong", "Macau", "Chongqing"]);
-
-const NAME_FIX = { Shenyeng: "Shenyang", Shijianzhuang: "Shijiazhuang", Xian: "Xi'an", Huaiyin: "Huai'an" };
-
-// ---------------------------------------------------------------- geometry helpers
-const rings = (g) => (g.type === "Polygon" ? [g.coordinates] : g.coordinates); // -> array of polygons (each: [outer, ...holes])
-const pathFromPolys = (g, close = true) =>
-  rings(g)
-    .flatMap((poly) => poly)
-    .map((ring) => "M" + ring.map((c) => proj(c).map(fmt).join(",")).join("L") + (close ? "Z" : ""))
-    .join("");
-const pathFromLines = (g) => {
-  const lines = g.type === "LineString" ? [g.coordinates] : g.coordinates;
-  return lines.map((l) => "M" + l.map((c) => proj(c).map(fmt).join(",")).join("L")).join("");
-};
-
-function pointInRing(pt, ring) {
-  let inside = false;
-  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-    const [xi, yi] = ring[i], [xj, yj] = ring[j];
-    if (yi > pt[1] !== yj > pt[1] && pt[0] < ((xj - xi) * (pt[1] - yi)) / (yj - yi) + xi) inside = !inside;
-  }
-  return inside;
-}
-function pointInGeom(pt, g) {
-  for (const poly of rings(g)) {
-    if (pointInRing(pt, poly[0]) && !poly.slice(1).some((h) => pointInRing(pt, h))) return true;
-  }
-  return false;
-}
-const bboxOf = (g) => {
-  let minx = 1e9, miny = 1e9, maxx = -1e9, maxy = -1e9;
-  for (const poly of rings(g)) for (const [x, y] of poly[0]) { minx = Math.min(minx, x); maxx = Math.max(maxx, x); miny = Math.min(miny, y); maxy = Math.max(maxy, y); }
-  return [minx, miny, maxx, maxy];
-};
-const provinceBboxes = provinces.map((p) => bboxOf(p.geometry));
-function provinceAt(lonlat) {
-  for (let i = 0; i < provinces.length; i++) {
-    const [a, b, c, d] = provinceBboxes[i];
-    if (lonlat[0] < a || lonlat[0] > c || lonlat[1] < b || lonlat[1] > d) continue;
-    if (pointInGeom(lonlat, provinces[i].geometry)) return provinces[i];
-  }
-  return null;
-}
-const isLand = (lonlat) => pointInGeom(lonlat, outline.geometry);
-
-// ---------------------------------------------------------------- cities
-const seen = new Map();
-const cities = places
-  .map((f) => {
-    const p = f.properties;
-    const lonlat = f.geometry.coordinates;
-    const region = provinceAt(lonlat);
-    if (!region) return null;
-    const pop = p.pop_max || 0;
-    const isCap = /capital/.test(p.featurecla);
-    if (pop < 900_000 && !isCap) return null;
-    let name = NAME_FIX[p.name] || p.name;
-    let id = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-    if (seen.has(id)) { const n = seen.get(id) + 1; seen.set(id, n); id = `${id}-${n}`; } else seen.set(id, 1);
-    const type = p.adm0cap === 1 && name === "Beijing" ? "capital" : pop >= 5_000_000 ? "metropolis" : pop >= 2_000_000 ? "city" : "town";
-    const [x, y] = proj(lonlat);
-    return { id, name, type, x: fmt(x), y: fmt(y), population: pop, region: PROVINCE_EN[region.properties.name], lon: lonlat[0], lat: lonlat[1] };
-  })
-  .filter(Boolean)
-  .sort((a, b) => b.population - a.population);
-console.log(`cities: ${cities.length}`);
-
-// ---------------------------------------------------------------- roads (k-nearest + MST, sea if it leaves land)
-const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-const edgeKey = (a, b) => (a < b ? `${a}|${b}` : `${b}|${a}`);
-const edges = new Map();
-const addEdge = (a, b) => {
-  const k = edgeKey(a.id, b.id);
-  if (edges.has(k)) return;
-  const dpx = dist(a, b);
-  if (dpx * KM_PER_PX > 1100) return;
-  // sample along the segment; if any point is off-land it's a sea lane
-  let sea = false;
-  for (let t = 0.1; t < 0.95; t += 0.1) {
-    const lon = a.lon + (b.lon - a.lon) * t, lat = a.lat + (b.lat - a.lat) * t;
-    if (!isLand([lon, lat])) { sea = true; break; }
-  }
-  edges.set(k, { from: a.id, to: b.id, kind: sea ? "sea" : "road", km: Math.round(dpx * KM_PER_PX), waypoints: [[a.x, a.y], [b.x, b.y]] });
-};
-// k nearest
-for (const c of cities) {
-  const near = cities.filter((o) => o !== c).sort((p, q) => dist(c, p) - dist(c, q)).slice(0, 3);
-  for (const n of near) addEdge(c, n);
-}
-// MST (Prim) to guarantee connectivity
-{
-  const inTree = new Set([cities[0].id]);
-  while (inTree.size < cities.length) {
-    let best = null;
-    for (const a of cities) if (inTree.has(a.id)) for (const b of cities) if (!inTree.has(b.id)) { const d = dist(a, b); if (!best || d < best.d) best = { a, b, d }; }
-    if (!best) break;
-    inTree.add(best.b.id);
-    const k = edgeKey(best.a.id, best.b.id);
-    if (!edges.has(k)) { const save = KM_PER_PX; addEdge(best.a, best.b); if (!edges.has(k)) { const dpx = best.d; edges.set(k, { from: best.a.id, to: best.b.id, kind: "road", km: Math.round(dpx * save), waypoints: [[best.a.x, best.a.y], [best.b.x, best.b.y]] }); } }
-  }
-}
-const roads = [...edges.values()];
-console.log(`roads: ${roads.length} (${roads.filter((r) => r.kind === "sea").length} sea lanes)`);
+// ---------------------------------------------------------------- world (editable source)
+const worldCfg = readWorld("config.json");
+const cities = readWorld("locations.json");
+const roads = readWorld("roads.json").map((r) => {
+  let px = 0;
+  for (let i = 1; i < r.waypoints.length; i++) px += Math.hypot(r.waypoints[i][0] - r.waypoints[i - 1][0], r.waypoints[i][1] - r.waypoints[i - 1][1]);
+  return { ...r, km: Math.round(px * KM_PER_PX) };
+});
+const ids = new Set(cities.map((c) => c.id));
+for (const r of roads) if (!ids.has(r.from) || !ids.has(r.to)) throw new Error(`road references unknown location: ${r.from} -> ${r.to}`);
+console.log(`cities: ${cities.length}, roads: ${roads.length} (${roads.filter((r) => r.kind === "sea").length} sea lanes)`);
 
 // ---------------------------------------------------------------- regions
 const regions = provinces.map((p) => {
@@ -264,9 +139,9 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${OUT_W}" height="${
 <g transform="translate(${OUT_W - 1500}, ${OUT_H - 700})">
   <rect x="0" y="0" width="1300" height="440" fill="#efe4c6" stroke="#5a4630" stroke-width="6" rx="12"/>
   <rect x="18" y="18" width="1264" height="404" fill="none" stroke="#5a4630" stroke-width="2" rx="8"/>
-  <text x="650" y="150" font-family="${SERIF}" font-size="110" text-anchor="middle" fill="#2b1d12" font-weight="700">PLACEHOLDER REALM</text>
-  <text x="650" y="230" font-family="${SERIF}" font-size="44" text-anchor="middle" fill="#6b533a" letter-spacing="6">A WORLD SHAPED LIKE THE MIDDLE KINGDOM</text>
-  <text x="650" y="330" font-family="${SERIF}" font-size="40" text-anchor="middle" fill="#6b533a">1 px = ${KM_PER_PX.toFixed(2)} km = ${(KM_PER_PX * 2).toFixed(2)} li</text>
+  <text x="650" y="150" font-family="${SERIF}" font-size="110" text-anchor="middle" fill="#2b1d12" font-weight="700">${esc(worldCfg.name.toUpperCase())}</text>
+  <text x="650" y="230" font-family="${SERIF}" font-size="44" text-anchor="middle" fill="#6b533a" letter-spacing="6">${esc(worldCfg.subtitle || "")}</text>
+  <text x="650" y="330" font-family="${SERIF}" font-size="40" text-anchor="middle" fill="#6b533a">1 px = ${KM_PER_PX.toFixed(2)} km = ${(KM_PER_PX / worldCfg.unit.kmPerUnit).toFixed(2)} ${worldCfg.unit.plural}</text>
   <line x1="200" y1="380" x2="${200 + 500 / KM_PER_PX}" y2="380" stroke="#2b1d12" stroke-width="8"/>
   <text x="${200 + 250 / KM_PER_PX}" y="415" font-family="${SERIF}" font-size="34" text-anchor="middle" fill="#2b1d12">500 km</text>
 </g>
@@ -277,7 +152,6 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${OUT_W}" height="${
 // ---------------------------------------------------------------- write
 fs.mkdirSync(path.join(ROOT, "public/map"), { recursive: true });
 fs.mkdirSync(path.join(ROOT, "public/data"), { recursive: true });
-fs.writeFileSync(path.join(ROOT, "scratch/map.svg"), svg);
 
 const t0 = Date.now();
 await sharp(Buffer.from(svg), { limitInputPixels: false, density: 72 })
@@ -288,20 +162,8 @@ console.log(`map.png rendered in ${((Date.now() - t0) / 1000).toFixed(1)}s`);
 const TILE = 256;
 const maxZoom = Math.ceil(Math.log2(Math.max(OUT_W, OUT_H) / TILE));
 const w = (f, o) => fs.writeFileSync(path.join(ROOT, "public/data", f), JSON.stringify(o, null, 0));
-w("map.json", {
-  name: "Placeholder Realm",
-  width: OUT_W, height: OUT_H, tileSize: TILE, maxZoom,
-  kmPerPixel: +KM_PER_PX.toFixed(4),
-  unit: { name: "li", plural: "li", kmPerUnit: 0.5 },
-  travelModes: [
-    { id: "foot", label: "On foot", kmPerDay: 30 },
-    { id: "horse", label: "Horseback", kmPerDay: 60 },
-    { id: "caravan", label: "Caravan", kmPerDay: 25 },
-    { id: "ship", label: "Ship", kmPerDay: 150 },
-    { id: "courier", label: "Relay courier", kmPerDay: 200 },
-  ],
-});
-w("locations.json", cities.map(({ lon, lat, ...c }) => c));
+w("map.json", { ...worldCfg, width: OUT_W, height: OUT_H, tileSize: TILE, maxZoom, kmPerPixel: +KM_PER_PX.toFixed(4) });
+w("locations.json", cities);
 w("roads.json", roads);
 w("regions.json", regions);
 console.log("wrote public/data/*.json");

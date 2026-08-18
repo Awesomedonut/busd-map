@@ -24,9 +24,10 @@ npm run dev
 ## Layout
 
 ```
-scripts/build-map.mjs   geodata -> map.png + data JSON (placeholder is China-shaped)
+world/                  editable source: locations, roads, config
+scripts/build-map.mjs   world/ + terrain geodata -> map.png + public/data JSON
 scripts/make-tiles.mjs  map.png -> tile pyramid
-scripts/data/           source geodata (Natural Earth + DataV)
+scripts/data/           terrain geodata (Natural Earth + DataV), placeholder only
 public/data/            map.json, locations.json, roads.json, regions.json
 src/lib/                geo math, routing (Dijkstra), URL state
 src/components/         MapView, markers, route layer, measure tool, search, panel
@@ -34,7 +35,12 @@ src/components/         MapView, markers, route layer, measure tool, search, pan
 
 ## Editing the world
 
-- Locations: `public/data/locations.json` (pixel coords on map.png)
-- Roads / sea lanes: `public/data/roads.json`
-- Scale + travel speeds: `public/data/map.json`
-- Shareable URLs: `?x=&y=&z=&from=&to=&mode=`
+`world/` is the source of truth. Edit, then `npm run build:map` (~20s) to
+re-render the base map, tiles and `public/data/`.
+
+- `world/locations.json` — places (`id`, `name`, `type`, `x`, `y` in map pixels, optional `region`, `population`, `description`)
+- `world/roads.json` — road / sea-lane graph (`from`, `to`, `kind`, `waypoints` in map pixels; lengths are computed)
+- `world/config.json` — world name, distance unit, travel modes and speeds
+- `scripts/derive-placeholder.mjs` — one-off that generated the current placeholder from China geodata; not needed again
+
+Shareable URLs: `?x=&y=&z=&from=&to=&mode=`

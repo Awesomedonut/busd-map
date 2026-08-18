@@ -3,7 +3,7 @@ import type { WorldData } from "./types";
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 async function get<T>(name: string): Promise<T> {
-  const res = await fetch(`${BASE}/data/${name}.json`);
+  const res = await fetch(`${BASE}/data/${name}.json`, { credentials: "same-origin" });
   if (!res.ok) throw new Error(`failed to load ${name}.json (${res.status})`);
   return res.json() as Promise<T>;
 }
