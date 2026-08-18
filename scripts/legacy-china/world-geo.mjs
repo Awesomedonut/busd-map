@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const ROOT = path.resolve(__dirname, "../..");
-export const DATA = path.resolve(__dirname, "../data");
+export const DATA = path.resolve(__dirname, "data");
 export const WORLD = path.join(ROOT, "world");
 export const read = (f) => JSON.parse(fs.readFileSync(path.join(DATA, f), "utf8"));
 export const readWorld = (f) => JSON.parse(fs.readFileSync(path.join(WORLD, f), "utf8"));

@@ -1,6 +1,7 @@
 {
   "name": "Placeholder Realm",
-  "subtitle": "A world shaped like the Middle Kingdom",
+  "subtitle": "",
+  "mapWidthKm": 6000,
   "unit": { "name": "li", "plural": "li", "kmPerUnit": 0.5 },
   "travelModes": [
     { "id": "foot", "label": "On foot", "kmPerDay": 30 },

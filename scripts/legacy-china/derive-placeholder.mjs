@@ -6,7 +6,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { WORLD, read, proj, fmt, KM_PER_PX, PROVINCE_EN, NAME_FIX, provinceAt, isLand } from "./lib/world-geo.mjs";
+import { WORLD, read, proj, fmt, KM_PER_PX, PROVINCE_EN, NAME_FIX, provinceAt, isLand } from "./world-geo.mjs";
 
 const places = read("places.json").features;
 

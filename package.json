@@ -10,7 +10,8 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "build:map": "node scripts/build-map.mjs && node scripts/make-tiles.mjs",
-    "build:tiles": "node scripts/make-tiles.mjs"
+    "build:tiles": "node scripts/make-tiles.mjs",
+    "extract:terrain": "node scripts/extract-terrain.mjs world/source/map-source.png"
   },
   "dependencies": {
     "leaflet": "^1.9.4",
@@ -25,8 +26,10 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.4",
+    "d3-contour": "^4.0.2",
     "oxlint": "^1.75.0",
     "sharp": "^0.35.3",
+    "simplify-js": "^1.2.4",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.2",
     "vite": "^8.2.0"
