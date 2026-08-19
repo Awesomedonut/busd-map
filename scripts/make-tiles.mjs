@@ -7,6 +7,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import crypto from "node:crypto";
 import sharp from "sharp";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -18,6 +19,7 @@ const { width: W, height: H, tileSize: T, maxZoom } = cfg;
 fs.rmSync(OUT, { recursive: true, force: true });
 const t0 = Date.now();
 let count = 0;
+const tileUrls = [];
 
 for (let z = 0; z <= maxZoom; z++) {
   const scale = 1 / 2 ** (maxZoom - z);
@@ -34,6 +36,7 @@ for (let z = 0; z <= maxZoom; z++) {
   for (let x = 0; x < cols; x++) {
     fs.mkdirSync(path.join(OUT, String(z), String(x)), { recursive: true });
     for (let y = 0; y < rows; y++) {
+      tileUrls.push(`/map/tiles/${z}/${x}/${y}.webp`);
       jobs.push(
         sharp(raw, { raw: { width: cols * T, height: rows * T, channels: 4 } })
           .extract({ left: x * T, top: y * T, width: T, height: T })
@@ -46,4 +49,12 @@ for (let z = 0; z <= maxZoom; z++) {
   count += jobs.length;
   console.log(`z${z}: ${cols}x${rows} = ${jobs.length} tiles`);
 }
+// manifest + versioned service worker (version = hash of source image + config)
+const version = crypto.createHash("sha1")
+  .update(fs.readFileSync(SRC)).update(JSON.stringify(cfg)).update(fs.readFileSync(path.join(ROOT, "scripts/sw.template.js")))
+  .digest("hex").slice(0, 10);
+fs.writeFileSync(path.join(OUT, "manifest.json"), JSON.stringify({ version, tiles: tileUrls }));
+const tpl = fs.readFileSync(path.join(ROOT, "scripts/sw.template.js"), "utf8");
+fs.writeFileSync(path.join(ROOT, "public/sw.js"), tpl.replace("__VERSION__", version));
+console.log(`sw.js version ${version}, manifest ${tileUrls.length} tiles`);
 console.log(`${count} tiles in ${((Date.now() - t0) / 1000).toFixed(1)}s -> ${path.relative(ROOT, OUT)}`);
