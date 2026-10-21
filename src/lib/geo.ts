@@ -37,10 +37,8 @@ export function polylineKm(cfg: MapConfig, pts: [number, number][]): number {
 const nf = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
 const nf1 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 });
 
-export function formatKm(cfg: MapConfig, km: number): string {
-  const units = kmToUnits(cfg, km);
-  const u = units === 1 ? cfg.unit.name : cfg.unit.plural;
-  return `${units < 10 ? nf1.format(units) : nf.format(units)} ${u} (${km < 10 ? nf1.format(km) : nf.format(km)} km)`;
+export function formatKm(_cfg: MapConfig, km: number): string {
+  return `${km < 10 ? nf1.format(km) : nf.format(km)} km`;
 }
 
 export function formatDays(days: number): string {

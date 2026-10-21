@@ -2,11 +2,11 @@
 @import "leaflet/dist/leaflet.css";
 
 :root {
-  --sea: #d8dfd6;
-  --parchment: #efe4c6;
-  --ink: #2b1d12;
-  --ink-soft: #6b533a;
-  --accent: #8b1a1a;
+  --sea: #fff;
+  --parchment: #fff;
+  --ink: #000;
+  --ink-soft: #000;
+  --accent: #000;
 }
 
 html, body, #root { height: 100%; margin: 0; }
@@ -18,16 +18,16 @@ body { font-family: ui-sans-serif, system-ui, sans-serif; background: var(--sea)
 .leaflet-container .leaflet-popup-content { margin: 10px 12px; }
 .leaflet-tooltip.loc-tip { background: var(--ink); color: var(--parchment); border: 0; box-shadow: none; font-size: 12px; padding: 2px 6px; }
 .leaflet-tooltip.loc-tip::before { border-top-color: var(--ink); }
-.leaflet-tooltip.measure-tip { background: rgba(43,29,18,.9); color: #fff; border: 0; font-size: 12px; font-weight: 600; padding: 2px 6px; }
+.leaflet-tooltip.measure-tip { background: rgba(0,0,0,.9); color: #fff; border: 0; font-size: 12px; font-weight: 600; padding: 2px 6px; }
 .leaflet-tooltip.measure-tip::before { display: none; }
 .leaflet-bar a { color: var(--ink); }
 .crosshair .leaflet-container { cursor: crosshair; }
 
 /* small utility classes shared by panels */
-.panel { background: rgba(239, 228, 198, .96); border: 1px solid rgba(43,29,18,.25); border-radius: .5rem; box-shadow: 0 6px 24px rgba(0,0,0,.18); backdrop-filter: blur(6px); }
-.input { width: 100%; background: rgba(255,255,255,.55); border: 1px solid rgba(43,29,18,.25); border-radius: .375rem; padding: .35rem .5rem; font-size: .8rem; }
+.panel { background: #fff; border: 1px solid rgba(0,0,0,.25); border-radius: .5rem; }
+.input { width: 100%; background: rgba(255,255,255,.55); border: 1px solid rgba(0,0,0,.25); border-radius: .375rem; padding: .35rem .5rem; font-size: .8rem; }
 .btn { background: var(--ink); color: var(--parchment); border-radius: .375rem; padding: .35rem .6rem; font-size: .8rem; font-weight: 600; cursor: pointer; }
-.btn:hover { background: #4a3626; }
+.btn:hover { background: #000; }
 .btn.active { background: var(--accent); }
-.btn-sm { background: rgba(43,29,18,.1); border: 1px solid rgba(43,29,18,.3); border-radius: .375rem; padding: .15rem .5rem; font-size: .72rem; font-weight: 600; cursor: pointer; }
-.btn-sm:hover { background: rgba(43,29,18,.2); }
+.btn-sm { background: rgba(0,0,0,.1); border: 1px solid rgba(0,0,0,.3); border-radius: .375rem; padding: .15rem .5rem; font-size: .72rem; font-weight: 600; cursor: pointer; }
+.btn-sm:hover { background: rgba(0,0,0,.2); }

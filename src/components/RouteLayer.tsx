@@ -15,9 +15,9 @@ interface Props {
 }
 
 const KIND_STYLE = {
-  road: { color: "#a0522d", weight: 5, opacity: 0.95 },
-  trail: { color: "#a0522d", weight: 4, opacity: 0.9, dashArray: "8 6" },
-  sea: { color: "#2f5d8a", weight: 5, opacity: 0.95, dashArray: "2 10" },
+  road: { color: "#000", weight: 5, opacity: 0.95 },
+  trail: { color: "#000", weight: 4, opacity: 0.9, dashArray: "8 6" },
+  sea: { color: "#000", weight: 5, opacity: 0.95, dashArray: "2 10" },
 } as const;
 
 /** Draws the straight-line and road route between the two chosen locations. */
@@ -40,7 +40,7 @@ export function RouteLayer({ cfg, from, to, route, straightKm, showStraight }: P
   return (
     <>
       {showStraight && (
-        <Polyline positions={straight} pathOptions={{ color: "#2b1d12", weight: 3, opacity: 0.6, dashArray: "6 10" }}>
+        <Polyline positions={straight} pathOptions={{ color: "#000", weight: 3, opacity: 0.6, dashArray: "6 10" }}>
           <Tooltip className="measure-tip" sticky>Straight line · {formatKm(cfg, straightKm)}</Tooltip>
         </Polyline>
       )}

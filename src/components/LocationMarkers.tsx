@@ -44,10 +44,10 @@ function LocMarker({ cfg, loc, fromId, toId, selectedId, onSelect, onSetFrom, on
       center={pxToLatLng(cfg, loc.x, loc.y)}
       radius={RADIUS[loc.type] + (active ? 4 : 0)}
       pathOptions={{
-        color: isFrom ? "#1d6b3a" : isTo ? "#8b1a1a" : "#2b1d12",
+        color: "#000",
         weight: active ? 3 : 0,
         opacity: 1,
-        fillColor: isFrom ? "#1d6b3a" : isTo ? "#8b1a1a" : "#2b1d12",
+        fillColor: "#000",
         fillOpacity: active ? 0.25 : 0,
       }}
       eventHandlers={{

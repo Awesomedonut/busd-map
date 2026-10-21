@@ -42,14 +42,14 @@ export function MeasureTool({ cfg, active, onTotal, clearKey }: Props) {
 
   return (
     <>
-      <Polyline positions={line} pathOptions={{ color: "#8b1a1a", weight: 3, opacity: 0.9 }} />
+      <Polyline positions={line} pathOptions={{ color: "#000", weight: 3, opacity: 0.9 }} />
       {preview && (
-        <Polyline positions={preview} pathOptions={{ color: "#8b1a1a", weight: 2, opacity: 0.6, dashArray: "4 6" }}>
+        <Polyline positions={preview} pathOptions={{ color: "#000", weight: 2, opacity: 0.6, dashArray: "4 6" }}>
           <Tooltip className="measure-tip" sticky permanent direction="right" offset={[10, 0]}>{formatKm(cfg, previewKm)}</Tooltip>
         </Polyline>
       )}
       {pts.map(([x, y], i) => (
-        <CircleMarker key={i} center={pxToLatLng(cfg, x, y)} radius={5} pathOptions={{ color: "#fff", weight: 2, fillColor: "#8b1a1a", fillOpacity: 1 }}>
+        <CircleMarker key={i} center={pxToLatLng(cfg, x, y)} radius={5} pathOptions={{ color: "#fff", weight: 2, fillColor: "#000", fillOpacity: 1 }}>
           {i === pts.length - 1 && !preview && (
             <Tooltip className="measure-tip" permanent direction="right" offset={[8, 0]}>{formatKm(cfg, total)}</Tooltip>
           )}

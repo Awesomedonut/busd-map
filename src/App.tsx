@@ -87,7 +87,7 @@ export default function App() {
           title="Measure distance (m)"
           onClick={() => setMeasuring((m) => !m)}
         >
-          📏 {measuring ? "Measuring…" : "Measure"}
+          {measuring ? "Measuring…" : "Measure"}
         </button>
         {(measure.points > 0 || measuring) && (
           <div className="panel flex items-center gap-2 px-3 py-2 text-sm">
@@ -127,12 +127,8 @@ export default function App() {
         </div>
       </div>
 
-      {/* bottom-left: scale + coords */}
       <div className="absolute bottom-3 left-3 z-[1000] flex items-end gap-3">
         <div className="panel px-3 py-2"><ScaleBar cfg={cfg} zoom={view.zoom} /></div>
-        <div className="panel px-2 py-1 text-[11px] opacity-80">
-          x {Math.round(view.x)} · y {Math.round(view.y)} · z {view.zoom.toFixed(2)}
-        </div>
       </div>
     </div>
   );

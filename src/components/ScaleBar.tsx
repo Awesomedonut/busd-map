@@ -11,19 +11,11 @@ function nice(v: number) {
 
 export function ScaleBar({ cfg, zoom }: { cfg: MapConfig; zoom: number }) {
   const kpp = kmPerScreenPx(cfg, zoom);
-  const target = 140; // css px
-  const unitsPerPx = kpp / cfg.unit.kmPerUnit;
-  const units = nice(target * unitsPerPx);
-  const width = units / unitsPerPx;
-  const km = nice(target * kpp);
+  const km = nice(140 * kpp);
   const widthKm = km / kpp;
   const nf = new Intl.NumberFormat("en-US");
   return (
     <div className="pointer-events-none select-none text-[11px] font-semibold text-[var(--ink)]">
-      <div className="mb-0.5" style={{ width }}>
-        <div className="border-2 border-b-0 border-[var(--ink)] h-2" />
-        <div className="text-center leading-tight">{nf.format(units)} {cfg.unit.plural}</div>
-      </div>
       <div style={{ width: widthKm }}>
         <div className="border-2 border-t-0 border-[var(--ink)] h-2" />
         <div className="text-center leading-tight opacity-70">{nf.format(km)} km</div>
